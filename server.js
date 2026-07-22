@@ -29,12 +29,10 @@ async function resolveHostToIPv4(host) {
 
 app.use(express.json({ limit: '2mb' }));
 
-if (isProd) {
-  const distPath = join(__dirname, 'dist');
-  if (existsSync(distPath)) {
-    app.use(express.static(distPath));
-    console.log(`📦 Serving static files from ${distPath}`);
-  }
+const distPath = join(__dirname, 'dist');
+if (existsSync(distPath)) {
+  app.use(express.static(distPath));
+  console.log(`📦 Serving static files from ${distPath}`);
 }
 
 // ─── SQLite 초기화 ─────────────────────────────────────────────────────────
@@ -1041,17 +1039,14 @@ setInterval(processTimeLockedLetters, 60000);
 // 서버 시작 직후 즉시 1회 체크 가동
 setTimeout(processTimeLockedLetters, 5000);
 
-if (isProd) {
-  const distPath = join(__dirname, 'dist');
-  app.get(/.*/, (req, res) => {
-    const indexPath = join(distPath, 'index.html');
-    if (existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.status(404).send('Build not found. Run: npm run build');
-    }
-  });
-}
+app.get(/.*/, (req, res) => {
+  const indexPath = join(distPath, 'index.html');
+  if (existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Build not found. Run: npm run build');
+  }
+});
 
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`🕊️  Yona ${isProd ? 'PRODUCTION' : 'DEV'} → http://0.0.0.0:${port}`);
