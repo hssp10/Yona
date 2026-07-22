@@ -947,7 +947,7 @@ setTimeout(processTimeLockedLetters, 5000);
 
 if (isProd) {
   const distPath = join(__dirname, 'dist');
-  app.get('*', (req, res) => {
+  app.get('(.*)', (req, res) => {
     const indexPath = join(distPath, 'index.html');
     if (existsSync(indexPath)) {
       res.sendFile(indexPath);
