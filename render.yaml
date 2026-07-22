@@ -21,9 +21,3 @@ services:
         value: 14.siter@gmail.com
       - key: NODE_ENV
         value: production
-      - key: DB_PATH
-        value: /data/yona.db
-    disk:
-      name: yona-storage
-      mountPath: /data
-      sizeGB: 1
