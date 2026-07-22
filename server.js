@@ -37,6 +37,36 @@ if (isProd) {
   }
 }
 
+import net from 'net';
+
+app.get('/api/test-ports', async (req, res) => {
+  const host = 'smtp.gmail.com';
+  const ports = [25, 80, 443, 465, 587];
+  const results = [];
+
+  for (const port of ports) {
+    const status = await new Promise((resolve) => {
+      const socket = new net.Socket();
+      socket.setTimeout(2500);
+      socket.connect(port, host, () => {
+        socket.destroy();
+        resolve({ port, status: 'open' });
+      });
+      socket.on('error', (err) => {
+        socket.destroy();
+        resolve({ port, status: 'closed', error: err.message });
+      });
+      socket.on('timeout', () => {
+        socket.destroy();
+        resolve({ port, status: 'timeout' });
+      });
+    });
+    results.push(status);
+  }
+
+  res.json({ ok: true, results });
+});
+
 // ─── SQLite 초기화 ─────────────────────────────────────────────────────────
 // Railway 볼륨은 /data 경로로 마운트됨. DB_PATH 환경변수로 오버라이드 가능.
 const dbPath = process.env.DB_PATH || join(__dirname, 'yona.db');
