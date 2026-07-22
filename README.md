@@ -19,6 +19,7 @@
 | Database | SQLite (better-sqlite3) |
 | Email | Nodemailer (SMTP) |
 | Deploy | Railway |
+|   AI   | Antigravity Pro | Gemini Flash 3.5 | Gemini Flash 3.6 | Claude Opus 4.6 |
 
 ## 🚀 로컬 실행
 
