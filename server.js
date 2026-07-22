@@ -13,6 +13,20 @@ const app = express();
 const port = Number(process.env.PORT || process.env.API_PORT || 3002);
 const isProd = process.env.NODE_ENV === 'production';
 
+const IP_REGEX = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+async function resolveHostToIPv4(host) {
+  if (!host || IP_REGEX.test(host)) {
+    return host;
+  }
+  try {
+    const result = await dns.promises.lookup(host, { family: 4 });
+    return result.address;
+  } catch (e) {
+    console.warn(`[DNS lookup failed for ${host}, fallback to original host]:`, e);
+    return host;
+  }
+}
+
 app.use(express.json({ limit: '2mb' }));
 
 if (isProd) {
@@ -263,15 +277,18 @@ app.post('/api/auth/send-otp', async (req, res) => {
   }
 
   try {
+    const smtpHost = await resolveHostToIPv4(process.env.SMTP_HOST);
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
+      host: smtpHost,
       port: Number(process.env.SMTP_PORT),
       secure: process.env.SMTP_SECURE === 'true',
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
       connectionTimeout: 5000,
       socketTimeout: 5000,
       greetingTimeout: 5000,
-      family: 4
+      tls: {
+        servername: process.env.SMTP_HOST
+      }
     });
 
     const sender = process.env.SMTP_FROM || process.env.SMTP_USER;
@@ -617,15 +634,18 @@ app.post('/api/send-letter-email', async (req, res) => {
   const timezone = author ? author.timezone : 'Asia/Seoul';
   const formattedUnlockDate = formatUnlockDateInTimezone(letter?.unlockDate, timezone);
 
+  const smtpHost = await resolveHostToIPv4(process.env.SMTP_HOST);
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host: smtpHost,
     port: Number(process.env.SMTP_PORT),
     secure: process.env.SMTP_SECURE === 'true',
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     connectionTimeout: 5000,
     socketTimeout: 5000,
     greetingTimeout: 5000,
-    family: 4
+    tls: {
+      servername: process.env.SMTP_HOST
+    }
   });
 
   // 왁스 인장 색상 매핑
@@ -794,15 +814,18 @@ async function processTimeLockedLetters() {
 
       if (missing.length === 0 && recipientEmail) {
         try {
+          const smtpHost = await resolveHostToIPv4(process.env.SMTP_HOST);
           const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
+            host: smtpHost,
             port: Number(process.env.SMTP_PORT),
             secure: process.env.SMTP_SECURE === 'true',
             auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
             connectionTimeout: 5000,
             socketTimeout: 5000,
             greetingTimeout: 5000,
-            family: 4
+            tls: {
+              servername: process.env.SMTP_HOST
+            }
           });
 
           const sender = process.env.SMTP_FROM || process.env.SMTP_USER;
