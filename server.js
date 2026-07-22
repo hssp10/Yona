@@ -9,6 +9,30 @@ import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ─── .env 파일 자동 로드 (어떤 환경/명령어로 시작해도 SMTP 환경변수 유지) ───
+import { readFileSync } from 'fs';
+const envPath = join(__dirname, '.env');
+if (existsSync(envPath)) {
+  try {
+    const envContent = readFileSync(envPath, 'utf8');
+    for (const line of envContent.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+        const idx = trimmed.indexOf('=');
+        const key = trimmed.slice(0, idx).trim();
+        const val = trimmed.slice(idx + 1).trim();
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+    console.log('✅ .env 환경변수 자동 로드 완료');
+  } catch (e) {
+    console.warn('⚠️ .env 로드 중 오류:', e);
+  }
+}
+
 const app = express();
 const port = Number(process.env.PORT || process.env.API_PORT || 3002);
 const isProd = process.env.NODE_ENV === 'production';
@@ -37,7 +61,7 @@ if (existsSync(distPath)) {
 
 // ─── SQLite 초기화 ─────────────────────────────────────────────────────────
 // Railway 볼륨은 /data 경로로 마운트됨. DB_PATH 환경변수로 오버라이드 가능.
-const dbPath = process.env.DB_PATH || join(__dirname, 'yona.db');
+const dbPath = process.env.DB_PATH || (process.env.VERCEL ? '/tmp/yona.db' : join(__dirname, 'yona.db'));
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
@@ -264,14 +288,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
   console.log(`[OTP GENERATED] ${email} -> ${otp}`);
 
   // 이메일 발송 시도
-  const missing = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'].filter(k => !process.env[k]);
-  if (missing.length > 0) {
-    // 개발 편의를 위해 환경변수가 없을 경우 로그로만 OTP를 출력하고 응답 성공 처리
-    return res.json({
-      ok: true,
-      simulation: true,
-      message: `이메일 발송 환경변수 누락 (${missing.join(', ')}). 화면의 데모 안내를 참고하세요.`
-    });
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return res.status(500).json({ ok: false, message: 'SMTP 계정 정보가 설정되어 있지 않습니다.' });
   }
 
   // HTTPS 기반 Resend API 지원 (Railway 등 포트 587 차단 환경 우회용)
