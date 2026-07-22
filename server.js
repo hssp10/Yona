@@ -276,6 +276,65 @@ app.post('/api/auth/send-otp', async (req, res) => {
     });
   }
 
+  // HTTPS 기반 Resend API 지원 (Railway 등 포트 587 차단 환경 우회용)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: process.env.SMTP_FROM || 'Yona <onboarding@resend.dev>',
+          to: [email],
+          subject: '[Yona] 이메일 인증번호 안내',
+          html: `<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Yona 인증</title></head>
+<body style="margin:0;padding:0;background-color:#1A1714;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',Georgia,serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#1A1714;padding:48px 16px;">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;">
+  <tr><td style="padding-bottom:32px;text-align:center;">
+    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.35em;color:#8A7A60;text-transform:uppercase;">🕊 &nbsp; Y O N A</p>
+  </td></tr>
+  <tr><td style="background:#F7F3ED;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,0.04),0 32px 64px rgba(0,0,0,0.6);">
+    <div style="height:4px;background:linear-gradient(90deg,#8B6914 0%,#C9973A 40%,#D4AF37 60%,#8B6914 100%);"></div>
+    <div style="padding:40px 44px 32px;background:#F7F3ED;border-bottom:1px solid #E5DDD0;">
+      <p style="margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:#B8975A;">VERIFICATION CODE</p>
+      <h1 style="margin:0;font-size:26px;font-weight:300;color:#1C1814;letter-spacing:-0.02em;line-height:1.2;">인증번호를 <strong style="font-weight:700;">확인</strong>하세요</h1>
+    </div>
+    <div style="padding:36px 44px;background:url('') #FDFAF6;">
+      <p style="margin:0 0 28px;font-size:14px;color:#6B5E4C;line-height:1.85;">안녕하세요.<br>Yona 서비스 이용을 위한 이메일 인증번호입니다.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+        <tr><td style="background:#1A1714;border-radius:3px;padding:28px 20px;text-align:center;">
+          <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#8A7A60;">ONE-TIME PASSWORD</p>
+          <span style="font-size:40px;font-weight:700;letter-spacing:14px;color:#D4AF37;font-family:'Courier New',Courier,monospace;">${otp}</span>
+        </td></tr>
+      </table>
+      <p style="margin:0;font-size:11.5px;color:#9C8E7E;line-height:1.8;">본 인증번호는 발급 후 <strong style="color:#6B5E4C;">5분간 유효</strong>합니다.<br>본인이 요청하지 않은 경우 이 이메일을 무시하세요.</p>
+    </div>
+    <div style="padding:18px 44px;background:#F0EAE0;border-top:1px solid #E5DDD0;text-align:center;">
+      <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#B8975A;">Yona &copy; Eternal Archive &nbsp;&middot;&nbsp; Time-Sealed Delivery</p>
+    </div>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`
+        })
+      });
+
+      const resendData = await resendRes.json();
+      if (resendRes.ok) {
+        return res.json({ ok: true, message: '인증 메일이 발송되었습니다.' });
+      }
+      console.warn('[Resend API Error, fallback to SMTP]:', resendData);
+    } catch (apiErr) {
+      console.warn('[Resend API Exception, fallback to SMTP]:', apiErr);
+    }
+  }
+
   try {
     const smtpHost = await resolveHostToIPv4(process.env.SMTP_HOST);
     const transporter = nodemailer.createTransport({
