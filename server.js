@@ -1,4 +1,6 @@
 import express from 'express';
+import dns from 'dns';
+dns.setDefaultResultOrder('ipv4first');
 import nodemailer from 'nodemailer';
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
