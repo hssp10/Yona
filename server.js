@@ -40,25 +40,28 @@ if (isProd) {
 import net from 'net';
 
 app.get('/api/test-ports', async (req, res) => {
-  const host = 'smtp.gmail.com';
-  const ports = [25, 80, 443, 465, 587];
+  const targets = [
+    { host: 'www.google.com', port: 443 },
+    { host: 'smtp.gmail.com', port: 587 },
+    { host: 'smtp.gmail.com', port: 465 }
+  ];
   const results = [];
 
-  for (const port of ports) {
+  for (const target of targets) {
     const status = await new Promise((resolve) => {
       const socket = new net.Socket();
-      socket.setTimeout(2500);
-      socket.connect(port, host, () => {
+      socket.setTimeout(3000);
+      socket.connect(target.port, target.host, () => {
         socket.destroy();
-        resolve({ port, status: 'open' });
+        resolve({ host: target.host, port: target.port, status: 'open' });
       });
       socket.on('error', (err) => {
         socket.destroy();
-        resolve({ port, status: 'closed', error: err.message });
+        resolve({ host: target.host, port: target.port, status: 'closed', error: err.message, code: err.code });
       });
       socket.on('timeout', () => {
         socket.destroy();
-        resolve({ port, status: 'timeout' });
+        resolve({ host: target.host, port: target.port, status: 'timeout' });
       });
     });
     results.push(status);
