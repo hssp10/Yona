@@ -267,7 +267,11 @@ app.post('/api/auth/send-otp', async (req, res) => {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
       secure: process.env.SMTP_SECURE === 'true',
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      connectionTimeout: 5000,
+      socketTimeout: 5000,
+      greetingTimeout: 5000,
+      family: 4
     });
 
     const sender = process.env.SMTP_FROM || process.env.SMTP_USER;
@@ -617,7 +621,11 @@ app.post('/api/send-letter-email', async (req, res) => {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
     secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    connectionTimeout: 5000,
+    socketTimeout: 5000,
+    greetingTimeout: 5000,
+    family: 4
   });
 
   // 왁스 인장 색상 매핑
@@ -790,7 +798,11 @@ async function processTimeLockedLetters() {
             host: process.env.SMTP_HOST,
             port: Number(process.env.SMTP_PORT),
             secure: process.env.SMTP_SECURE === 'true',
-            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+            connectionTimeout: 5000,
+            socketTimeout: 5000,
+            greetingTimeout: 5000,
+            family: 4
           });
 
           const sender = process.env.SMTP_FROM || process.env.SMTP_USER;
