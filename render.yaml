@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: yona
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        value: 14.siter@gmail.com
+      - key: SMTP_PASS
+        value: pjipxxfiwfsowcot
+      - key: SMTP_FROM
+        value: 14.siter@gmail.com
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: /data/yona.db
+    disk:
+      name: yona-storage
+      mountPath: /data
+      sizeGB: 1
